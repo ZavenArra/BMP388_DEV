@@ -62,7 +62,7 @@ void Device::setClock(uint32_t clockSpeed)													// Set the I2C or SPI clo
 	}
 }
 
-#if !defined ARDUINO_ARCH_ESP8266 && !defined ARDUINO_ARCH_ESP32 && !defined ARDUINO_SAM_DUE
+#if !defined ARDUINO_ARCH_ESP8266 && !defined ARDUINO_ARCH_ESP32 && !defined ARDUINO_SAM_DUE && !defined ARDUINO_ARCH_STM32F1
 void Device::usingInterrupt(uint8_t pinNumber)											// Wrapper for the SPI usingInterrupt() function
 {
 	spi->usingInterrupt(pinNumber);
@@ -182,8 +182,16 @@ void Device::readBytes(uint8_t subAddress, uint8_t* data, uint16_t count)
 		spi->beginTransaction(SPISettings(spiClockSpeed, MSBFIRST, SPI_MODE0));	// Read "count" bytes into the "data" buffer using SPI
 		digitalWrite(cs, LOW);
 		spi->transfer(subAddress | READ_MASK);
-		spi->transfer(0x00);																						// Read dummy byte required by BMP388 for SPI
+		spi->transfer(0x00);		
+		// Read dummy byte required by BMP388 for SPI
+#ifdef ARDUINO_ARCH_STM32F1
+		for(int i=0; i<count; i++)
+		{
+			spi->transfer(data[i]);
+		}
+#else
 		spi->transfer(data, count);
+#endif
 		digitalWrite(cs, HIGH);
 		spi->endTransaction();	
 	}
